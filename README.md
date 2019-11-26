@@ -6,5 +6,5 @@
 pololu-rpi-slave-arduino-library-balboa/examples/BalboaRPiSlaveDemo/BalboaRPiSlaveDemo.ino
 をArduinoに書き込む。
 
-2.rasp以下のコマンドを実効する。
+2.以下のコマンドを実効する。
 `rosrun script/balance_main.py`

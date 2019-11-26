@@ -7,4 +7,4 @@ pololu-rpi-slave-arduino-library-balboa/examples/BalboaRPiSlaveDemo/BalboaRPiSla
 をArduinoに書き込む。
 
 2.rasp以下のコマンドを実効する。
-`rosrun script/balance_main.py
+`rosrun script/balance_main.py`

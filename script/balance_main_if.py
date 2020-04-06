@@ -1,6 +1,8 @@
 import time
 import threading
 import struct
+import os
+import errno
 
 from a_star import AStar
 from lsm6 import LSM6
@@ -204,17 +206,20 @@ class Balancer:
     #read
     cmd_path = BALANCE_CMD_PATH
     try:
-        with open(cmd_path, mode='rb') as fin:
+        with open(cmd_path) as fin:
             cmd = fin.read()
-            pass
+            if len(cmd) == 0:
+                print ("Read 0")
+                pass
+            balance_cmd = struct.unpack('hhbb', cmd)
+            self.cur_cmd.left_speed = balance_cmd[0]
+            self.cur_cmd.right_speed = balance_cmd[1]
+            self.cur_cmd.flag_1 = balance_cmd[2]
+            self.cur_cmd.flag_2 = balance_cmd[3]
+            #pass
     except IOError:
         print ("Cmd read error")
-        return
-    balance_cmd = struct.unpack('hhbb', cmd)
-    self.cur_cmd.left_speed = balance_cmd[0]
-    self.cur_cmd.right_speed = balance_cmd[1]
-    self.cur_cmd.flag_1 = balance_cmd[2]
-    self.cur_cmd.flag_2 = balance_cmd[3]
+        pass
     self.adj_speed_left = self.cur_cmd.left_speed
     self.adj_speed_right = self.cur_cmd.right_speed
 
@@ -240,7 +245,7 @@ class Balancer:
 
     odm_path = BALANCE_ODM_PATH
     try:
-        with open(odm_path, "wb") as fout:
+        with open(odm_path) as fout:
             fout.write(odata)
     except IOError:
         print ("Odm write error")
@@ -378,7 +383,9 @@ if __name__ == "__main__":
     balancer.setup()
     balancer.stand_up()
     for i in range(1000):
-      time.sleep(0.1) # wait for IMU readings to stabilize
+      time.sleep(0.19) # wait for IMU readings to stabilize
       balancer.read_cmd()
+      balancer.drive(balancer.adj_speed_left, balancer.adj_speed_right)
       balancer.write_odm()
-      print(balancer.angle)
+      #print(balancer.angle)
+      print(balancer.adj_speed_left)

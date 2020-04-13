@@ -3,6 +3,7 @@ import threading
 import struct
 import os
 import errno
+import fcntl
 
 from a_star import AStar
 from lsm6 import LSM6
@@ -142,6 +143,8 @@ class Balancer:
     self.adj_speed_left = 0
     self.adj_speed_right = 0
 
+    self.lock = threading.Lock()
+
   def setup(self):
     self.imu.enable()
     time.sleep(1) # wait for IMU readings to stabilize
@@ -196,7 +199,7 @@ class Balancer:
       self.reset_encoders()
       self.start()
       self.cur_status = 1
-      self.write_odm()
+      # self.write_odm()
 
 
     else:
@@ -204,51 +207,62 @@ class Balancer:
 
   def read_cmd(self):
     #read
+    print("read_cmd")
     cmd_path = BALANCE_CMD_PATH
     try:
-        with open(cmd_path) as fin:
+        # print("open", cmd_path)
+        with open(cmd_path, "rb") as fin:
+        #with os.fdopen(os.open(cmd_path, os.O_RDONLY | os.O_NONBLOCK), "rb") as fin:
+            print("read", cmd_path)
             cmd = fin.read()
             if len(cmd) == 0:
-                print ("Read 0")
-                pass
+                # print ("Read 0")
+                return
             balance_cmd = struct.unpack('hhbb', cmd)
             self.cur_cmd.left_speed = balance_cmd[0]
             self.cur_cmd.right_speed = balance_cmd[1]
             self.cur_cmd.flag_1 = balance_cmd[2]
             self.cur_cmd.flag_2 = balance_cmd[3]
-            #pass
+            print ("ls", self.cur_cmd.left_speed, "rs", self.cur_cmd.right_speed, "s1", self.cur_cmd.flag_1, "s2", self.cur_cmd.flag_2)
     except IOError:
         print ("Cmd read error")
-        pass
     self.adj_speed_left = self.cur_cmd.left_speed
     self.adj_speed_right = self.cur_cmd.right_speed
 
   def write_odm(self):
     #write
     odm = balance_odm()
-    odm.ax = self.imu.a.x
-    odm.ay = self.imu.a.y
-    odm.az = self.imu.a.z
-    odm.gx = self.imu.g.x
-    odm.gy = self.imu.g.y
-    odm.gz = self.imu.g.z
+    with self.lock:
+      odm.ax = self.imu.a.x
+      odm.ay = self.imu.a.y
+      odm.az = self.imu.a.z
+      odm.gx = self.imu.g.x
+      odm.gy = self.imu.g.y
+      odm.gz = self.imu.g.z
 
-    odm.left_enc = self.last_counts_left
-    odm.right_enc = self.last_counts_right
-    odm.status_1 = self.cur_status
-    odm.status_2 = self.cur_cmd.flag_2
-    #debug
-    odm.left_speed = self.cur_cmd.left_speed
-    odm.right_speed = self.cur_cmd.right_speed
+      odm.left_enc = self.last_counts_left
+      odm.right_enc = self.last_counts_right
+      odm.status_1 = self.cur_status
+      odm.status_2 = self.cur_cmd.flag_2
+      #debug
+      odm.left_speed = self.cur_cmd.left_speed
+      odm.right_speed = self.cur_cmd.right_speed
+      
+      print("ax", odm.ax, "ay", odm.ay, "az", odm.az, "gx", odm.gx, "gy", odm.gy, "gz", odm.gz)
+      print("le", odm.left_enc, "re", odm.right_enc, "s1", odm.status_1, "s2", odm.status_2, "ls", odm.left_speed, "rs", odm.right_speed)
 
     odata = struct.pack('6fhhbbhh', odm.ax, odm.ay, odm.az, odm.gx, odm.gy, odm.gz, odm.left_enc, odm.right_enc, odm.status_1, odm.status_2, odm.left_speed, odm.right_speed)
 
     odm_path = BALANCE_ODM_PATH
     try:
-        with open(odm_path) as fout:
+        print("open", odm_path)
+        with open(odm_path, "wb") as fout:
+        #with os.fdopen(os.open(odm_path, os.O_WRONLY), "wb") as fout:
+            print("write", odm_path)
             fout.write(odata)
-    except IOError:
-        print ("Odm write error")
+    except IOError as err:
+        print ("Odm write error", err)
+        pass
 
   def update_loop(self):
     while self.running:
@@ -274,9 +288,10 @@ class Balancer:
     self.a_star.motors(0, 0)
 
   def update_sensors(self):
-    self.imu.read()
-    self.integrate_gyro()
-    self.integrate_encoders()
+    with self.lock:
+      self.imu.read()
+      self.integrate_gyro()
+      self.integrate_encoders()
 
   def integrate_gyro(self):
     # Convert from full-scale 1000 deg/s to deg/s.
@@ -295,15 +310,21 @@ class Balancer:
     self.distance_right += self.speed_right
     self.last_counts_right = counts_right
 
-  def drive(self, left_speed, right_speed):
-    self.drive_left = left_speed
-    self.drive_right = right_speed
+#  def drive(self, left_speed, right_speed):
+#    self.drive_left = left_speed
+#    self.drive_right = right_speed
+
+  def drive(self):
+    with self.lock:
+      self.drive_left = self.adj_speed_left
+      self.drive_right = self.adj_speed_right
 
   def do_drive_ticks(self):
-    self.distance_left -= self.drive_left
-    self.distance_right -= self.drive_right
-    self.speed_left -= self.drive_left
-    self.speed_right -= self.drive_right
+    with self.lock:
+      self.distance_left -= self.drive_left
+      self.distance_right -= self.drive_right
+      self.speed_left -= self.drive_left
+      self.speed_right -= self.drive_right
 
   def reset(self):
     self.motor_speed = 0
@@ -379,13 +400,23 @@ def subtract_16_bit(a, b):
 balancer = Balancer()
 
 if __name__ == "__main__":
+  try:
     balancer.a_star.play_notes("o4l16ceg>c8")
     balancer.setup()
     balancer.stand_up()
+    print ("go main loop")
     for i in range(1000):
       time.sleep(0.19) # wait for IMU readings to stabilize
       balancer.read_cmd()
-      balancer.drive(balancer.adj_speed_left, balancer.adj_speed_right)
+      #balancer.drive(balancer.adj_speed_left, balancer.adj_speed_right)
+      balancer.drive()
       balancer.write_odm()
       #print(balancer.angle)
-      print(balancer.adj_speed_left)
+      print(i, balancer.adj_speed_left)
+    balancer.stop()
+  except:
+    print('exception')
+    print('stop')
+    balancer.stop()
+    time.sleep(1)
+    raise

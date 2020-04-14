@@ -199,7 +199,7 @@ class Balancer:
       self.reset_encoders()
       self.start()
       self.cur_status = 1
-      # self.write_odm()
+      self.write_odm()
 
 
     else:
@@ -405,14 +405,17 @@ if __name__ == "__main__":
     balancer.setup()
     balancer.stand_up()
     print ("go main loop")
-    for i in range(1000):
+    #for i in range(2000):
+    i = 0
+    while True:
       time.sleep(0.19) # wait for IMU readings to stabilize
       balancer.read_cmd()
       #balancer.drive(balancer.adj_speed_left, balancer.adj_speed_right)
       balancer.drive()
       balancer.write_odm()
       #print(balancer.angle)
-      print(i, balancer.adj_speed_left)
+      print(i, "ls", balancer.adj_speed_left, "rs", balancer.adj_speed_right)
+      i += 1
     balancer.stop()
   except:
     print('exception')

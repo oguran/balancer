@@ -207,10 +207,10 @@ class Balancer:
 
   def read_cmd(self):
     #read
-    print("read_cmd")
+    #print("read_cmd")
     cmd_path = BALANCE_CMD_PATH
     try:
-        # print("open", cmd_path)
+        print("open", cmd_path)
         with open(cmd_path, "rb") as fin:
         #with os.fdopen(os.open(cmd_path, os.O_RDONLY | os.O_NONBLOCK), "rb") as fin:
             print("read", cmd_path)
@@ -302,6 +302,8 @@ class Balancer:
   def integrate_encoders(self):
     (counts_left, counts_right) = self.a_star.read_encoders()
 
+    # print ('encL', counts_left, 'lastL',self.last_counts_left, 'encR', counts_right, 'lastR', self.last_counts_right)
+
     self.speed_left = subtract_16_bit(counts_left, self.last_counts_left)
     self.distance_left += self.speed_left
     self.last_counts_left = counts_left
@@ -309,6 +311,7 @@ class Balancer:
     self.speed_right = subtract_16_bit(counts_right, self.last_counts_right)
     self.distance_right += self.speed_right
     self.last_counts_right = counts_right
+
 
 #  def drive(self, left_speed, right_speed):
 #    self.drive_left = left_speed

@@ -210,10 +210,9 @@ class Balancer:
     #print("read_cmd")
     cmd_path = BALANCE_CMD_PATH
     try:
-        print("open", cmd_path)
+        #print("open", cmd_path)
         with open(cmd_path, "rb") as fin:
-        #with os.fdopen(os.open(cmd_path, os.O_RDONLY | os.O_NONBLOCK), "rb") as fin:
-            print("read", cmd_path)
+            #print("read", cmd_path)
             cmd = fin.read()
             if len(cmd) == 0:
                 # print ("Read 0")
@@ -223,7 +222,7 @@ class Balancer:
             self.cur_cmd.right_speed = balance_cmd[1]
             self.cur_cmd.flag_1 = balance_cmd[2]
             self.cur_cmd.flag_2 = balance_cmd[3]
-            print ("ls", self.cur_cmd.left_speed, "rs", self.cur_cmd.right_speed, "s1", self.cur_cmd.flag_1, "s2", self.cur_cmd.flag_2)
+            # print ("cmd ls", self.cur_cmd.left_speed, "rs", self.cur_cmd.right_speed, "s1", self.cur_cmd.flag_1, "s2", self.cur_cmd.flag_2)
     except IOError:
         print ("Cmd read error")
     self.adj_speed_left = self.cur_cmd.left_speed
@@ -248,17 +247,16 @@ class Balancer:
       odm.left_speed = self.cur_cmd.left_speed
       odm.right_speed = self.cur_cmd.right_speed
       
-      print("ax", odm.ax, "ay", odm.ay, "az", odm.az, "gx", odm.gx, "gy", odm.gy, "gz", odm.gz)
-      print("le", odm.left_enc, "re", odm.right_enc, "s1", odm.status_1, "s2", odm.status_2, "ls", odm.left_speed, "rs", odm.right_speed)
+      # print("ax", odm.ax, "ay", odm.ay, "az", odm.az, "gx", odm.gx, "gy", odm.gy, "gz", odm.gz)
+      # print("le", odm.left_enc, "re", odm.right_enc, "s1", odm.status_1, "s2", odm.status_2, "ls", odm.left_speed, "rs", odm.right_speed)
 
     odata = struct.pack('6fhhbbhh', odm.ax, odm.ay, odm.az, odm.gx, odm.gy, odm.gz, odm.left_enc, odm.right_enc, odm.status_1, odm.status_2, odm.left_speed, odm.right_speed)
 
     odm_path = BALANCE_ODM_PATH
     try:
-        print("open", odm_path)
+        #print("open", odm_path)
         with open(odm_path, "wb") as fout:
-        #with os.fdopen(os.open(odm_path, os.O_WRONLY), "wb") as fout:
-            print("write", odm_path)
+            #print("write", odm_path)
             fout.write(odata)
     except IOError as err:
         print ("Odm write error", err)
@@ -301,8 +299,6 @@ class Balancer:
 
   def integrate_encoders(self):
     (counts_left, counts_right) = self.a_star.read_encoders()
-
-    # print ('encL', counts_left, 'lastL',self.last_counts_left, 'encR', counts_right, 'lastR', self.last_counts_right)
 
     self.speed_left = subtract_16_bit(counts_left, self.last_counts_left)
     self.distance_left += self.speed_left
@@ -411,7 +407,8 @@ if __name__ == "__main__":
     #for i in range(2000):
     i = 0
     while True:
-      time.sleep(0.19) # wait for IMU readings to stabilize
+      # time.sleep(0.19) # wait for IMU readings to stabilize
+      time.sleep(0.01) # wait for IMU readings to stabilize
       balancer.read_cmd()
       #balancer.drive(balancer.adj_speed_left, balancer.adj_speed_right)
       balancer.drive()

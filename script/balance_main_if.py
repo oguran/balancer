@@ -406,16 +406,34 @@ if __name__ == "__main__":
     print ("go main loop")
     #for i in range(2000):
     i = 0
+    # i = t0i = 0
+    # t0 = time.time()
+    ls = balancer.adj_speed_left + 1
+    rs = balancer.adj_speed_right + 1
+    next_update_time = time.clock_gettime(time.CLOCK_MONOTONIC_RAW)
     while True:
       # time.sleep(0.19) # wait for IMU readings to stabilize
-      time.sleep(0.01) # wait for IMU readings to stabilize
+      # time.sleep(0.01) # wait for IMU readings to stabilize
       balancer.read_cmd()
       #balancer.drive(balancer.adj_speed_left, balancer.adj_speed_right)
       balancer.drive()
       balancer.write_odm()
       #print(balancer.angle)
-      print(i, "ls", balancer.adj_speed_left, "rs", balancer.adj_speed_right)
+      if ls != balancer.adj_speed_left or rs != balancer.adj_speed_right:
+        print(i, "ls", balancer.adj_speed_left, "rs", balancer.adj_speed_right)
+        ls = balancer.adj_speed_left
+        rs = balancer.adj_speed_right
       i += 1
+      # t1 = time.time()
+      # elapsed = t1 - t0
+      # if elapsed >= 1:
+      #   cnt = i - t0i
+      #   print((cnt / elapsed), " Hz (", cnt, "/", elapsed, ")")
+      #   t0 = t1
+      #   t0i = i
+      next_update_time += UPDATE_TIME
+      now = time.clock_gettime(time.CLOCK_MONOTONIC_RAW)
+      time.sleep(max(next_update_time - now, 0))
     balancer.stop()
   except:
     print('exception')

@@ -191,7 +191,7 @@ class Balancer:
       for _ in range(40):
         time.sleep(UPDATE_TIME)
         self.update_sensors()
-        print(self.angle)
+        # print(self.angle)
         if abs(self.angle) < 60:
           break
 
@@ -420,7 +420,7 @@ if __name__ == "__main__":
       balancer.write_odm()
       #print(balancer.angle)
       if ls != balancer.adj_speed_left or rs != balancer.adj_speed_right:
-        print(i, "ls", balancer.adj_speed_left, "rs", balancer.adj_speed_right)
+        # print(i, "ls", balancer.adj_speed_left, "rs", balancer.adj_speed_right)
         ls = balancer.adj_speed_left
         rs = balancer.adj_speed_right
       i += 1

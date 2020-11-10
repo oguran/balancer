@@ -290,4 +290,4 @@ if __name__ == "__main__":
     balancer.stand_up()
     for i in range(1000):
         time.sleep(0.1) # wait for IMU readings to stabilize
-        print(balancer.angle)
+        print(i, balancer.angle)
